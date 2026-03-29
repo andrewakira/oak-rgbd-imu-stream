@@ -9,6 +9,7 @@
 2. Run Container
     ```shell=
     docker run -it --rm \
+      --privileged \
       --net=host \
       --ipc=host \
       -e DISPLAY=$DISPLAY \
@@ -16,6 +17,7 @@
       -v $XAUTHORITY:$XAUTHORITY \
       -v /tmp/.X11-unix:/tmp/.X11-unix \
       -v $(pwd):/workspace \
+      -v /dev:/dev \
       oak
     ```
 3. compile
