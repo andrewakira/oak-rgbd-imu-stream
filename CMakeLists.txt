@@ -11,14 +11,25 @@ find_package(OpenCV REQUIRED)
 find_package(depthai CONFIG REQUIRED)
 find_package(Threads REQUIRED)
 
-add_executable(oak_stream src/stereo_inertial_publisher.cpp)
-
-target_link_libraries(oak_stream PRIVATE
+# building library
+add_library(depthai_sensor
+    src/DepthAISensor.cpp
+)
+target_include_directories(depthai_sensor PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${OpenCV_INCLUDE_DIRS}
+)
+target_link_libraries(depthai_sensor PUBLIC
     depthai::opencv
     ${OpenCV_LIBS}
     Threads::Threads
 )
 
-target_include_directories(oak_stream PRIVATE
-    ${OpenCV_INCLUDE_DIRS}
+# building exe
+add_executable(oak_stream 
+    src/main.cpp
+)
+
+target_link_libraries(oak_stream PRIVATE
+    depthai_sensor
 )
