@@ -1,0 +1,30 @@
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    vim \
+    cmake \
+    git \
+    wget \
+    unzip \
+    pkg-config \
+    python3 \
+    python3-pip \
+    libgtk-3-dev \
+    libgl1-mesa-dev \
+    libglib2.0-dev \
+    libopencv-dev 
+
+RUN git clone https://github.com/luxonis/depthai-core.git && \
+    cd depthai-core && \
+    git checkout v2_stable && \
+    git submodule update --init --recursive && \
+    cmake -S. -Bbuild -D'BUILD_SHARED_LIBS=ON' -D'CMAKE_INSTALL_PREFIX=/opt/depthai-install' && \
+    cmake --build build --target install -j4
+
+
+WORKDIR /workspace
+
+CMD ["/bin/bash"]
