@@ -3,7 +3,8 @@
 #define DEBUGMODE 0
 #if DEBUGMODE
 #include "FPSCounter.hpp"
-FPSCounter fpsCounter;
+FPSCounter imuFps;
+FPSCounter cameraFps;
 #endif
 
 using namespace std;
@@ -144,7 +145,7 @@ void DepthAISensor::imuLoop() {
             continue;
         }
         #if DEBUGMODE
-        fpsCounter.update("imu");
+        imuFps.update("imu");
         #endif
 
         for(const auto& imuPacket : imuData->packets) {
@@ -155,7 +156,7 @@ void DepthAISensor::imuLoop() {
             auto gyroTs = gyro.getTimestamp();
 
             ImuData imu;
-            imu.timestamp = acceleroTs.time_since_epoch().count() * 1e-9;
+            imu.timestamp = chrono::duration<double>(acceleroTs.time_since_epoch()).count();
             imu.accel = cv::Vec3f(accel.x, accel.y, accel.z);
             imu.gyro  = cv::Vec3f(gyro.x, gyro.y, gyro.z);
 
@@ -193,7 +194,7 @@ void DepthAISensor::cameraLoop() {
             continue;
         }
         #if DEBUGMODE
-        fpsCounter.update("camera");
+        cameraFps.update("camera");
         #endif
 
         auto frameRgb = messageGroup->get<dai::ImgFrame>("sync_rgb");
@@ -202,17 +203,17 @@ void DepthAISensor::cameraLoop() {
         auto frameRight = messageGroup->get<dai::ImgFrame>("sync_right");
 
         Frame f;
-        f.timestamp = frameLeft->getTimestamp().time_since_epoch().count() * 1e-9;
-        f.left = frameLeft->getCvFrame();
-        f.right = frameRight->getCvFrame();
-        f.depth = frameDepth->getCvFrame();
-        f.rgb = frameRgb->getCvFrame();
+        f.timestamp = chrono::duration<double>(frameLeft->getTimestamp().time_since_epoch()).count();
+        f.left = frameLeft->getCvFrame().clone();
+        f.right = frameRight->getCvFrame().clone();
+        f.depth = frameDepth->getCvFrame().clone();
+        f.rgb = frameRgb->getCvFrame().clone();
 
         {
             lock_guard<mutex> lock(frameMutex);
             frameBuffer.push_back(f);
 
-            const int MAX_IMG_SIZE = 2;
+            const int MAX_IMG_SIZE = 3;
             while(frameBuffer.size() > MAX_IMG_SIZE) {
                 frameBuffer.pop_front();
             }
