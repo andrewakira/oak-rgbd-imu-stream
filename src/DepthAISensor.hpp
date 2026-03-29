@@ -20,10 +20,30 @@
 
 class DepthAISensor {
 public:
+    struct ImuData {
+        double timestamp;
+        cv::Vec3f accel;
+        cv::Vec3f gyro;
+    };
+
+    struct Frame {
+        double timestamp;
+        cv::Mat left;
+        cv::Mat right;
+        cv::Mat depth;
+        cv::Mat rgb;
+    };
+
+    struct SensorData {
+        std::vector<ImuData> imuSequence;
+        Frame frame;
+    };
+
     DepthAISensor();
     ~DepthAISensor();
 
     void start();
+    bool getSensorData(SensorData& outData);
     void stop();
 private:
     std::shared_ptr<dai::Device> device;
@@ -31,6 +51,14 @@ private:
     std::atomic<bool> isRunning{false};
     std::thread imuThread;
     std::thread cameraThread;
+
+    std::deque<ImuData> imuBuffer;
+    std::deque<Frame> frameBuffer;
+
+    std::mutex imuMutex;
+    std::mutex frameMutex;
+    std::condition_variable condVar;
+
     
     void initDevice();
     dai::Pipeline createPipeline();

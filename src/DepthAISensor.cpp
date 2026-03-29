@@ -3,7 +3,8 @@
 #define DEBUGMODE 0
 #if DEBUGMODE
 #include "FPSCounter.hpp"
-FPSCounter fpsCounter;
+FPSCounter imuFps;
+FPSCounter cameraFps;
 #endif
 
 using namespace std;
@@ -144,26 +145,44 @@ void DepthAISensor::imuLoop() {
             continue;
         }
         #if DEBUGMODE
-        fpsCounter.update("imu");
+        imuFps.update("imu");
         #endif
 
         for(const auto& imuPacket : imuData->packets) {
-            auto acceleroValues = imuPacket.acceleroMeter;
-            auto gyroValues = imuPacket.gyroscope;
+            auto accel = imuPacket.acceleroMeter;
+            auto gyro = imuPacket.gyroscope;
 
-            auto acceleroTs = acceleroValues.getTimestamp();
-            auto gyroTs = gyroValues.getTimestamp();
+            auto acceleroTs = accel.getTimestamp();
+            auto gyroTs = gyro.getTimestamp();
+
+            ImuData imu;
+            imu.timestamp = chrono::duration<double>(acceleroTs.time_since_epoch()).count();
+            imu.accel = cv::Vec3f(accel.x, accel.y, accel.z);
+            imu.gyro  = cv::Vec3f(gyro.x, gyro.y, gyro.z);
+
+            {
+                lock_guard<mutex> lock(imuMutex);
+                imuBuffer.push_back(imu);
+
+                double MAX_IMU_TIME = 2.0;
+                while(!imuBuffer.empty()) {
+                    if (imu.timestamp - imuBuffer.front().timestamp > MAX_IMU_TIME) {
+                        imuBuffer.pop_front();
+                    } else {
+                        break;
+                    }
+                }
+            }
 
             // Print accelerometer data
             //cout << "Accelerometer timestamp: " << acceleroTs.time_since_epoch().count() << endl;
             //cout << "Latency [ms]: " << timeDeltaToMilliS(chrono::steady_clock::now() - acceleroValues.getTimestamp()) << endl;
-            //cout << "Accelerometer [m/s^2]: x: " << acceleroValues.x << " y: " << acceleroValues.y << " z: " << acceleroValues.z << endl;
+            //cout << "Accelerometer [m/s^2]: x: " << accel.x << " y: " << accel.y << " z: " << accel.z << endl;
 
             // Print gyroscope data
             //cout << "Gyroscope timestamp: " << gyroTs.time_since_epoch().count() << endl;
-            //cout << "Gyroscope [rad/s]: x: " << gyroValues.x << " y: " << gyroValues.y << " z: " << gyroValues.z << endl;
+            //cout << "Gyroscope [rad/s]: x: " << gyro.x << " y: " << gyro.y << " z: " << gyro.z << endl;
         }
-        this_thread::sleep_for(chrono::milliseconds(1));
     }
 }
 
@@ -175,7 +194,7 @@ void DepthAISensor::cameraLoop() {
             continue;
         }
         #if DEBUGMODE
-        fpsCounter.update("camera");
+        cameraFps.update("camera");
         #endif
 
         auto frameRgb = messageGroup->get<dai::ImgFrame>("sync_rgb");
@@ -183,13 +202,58 @@ void DepthAISensor::cameraLoop() {
         auto frameLeft = messageGroup->get<dai::ImgFrame>("sync_left");
         auto frameRight = messageGroup->get<dai::ImgFrame>("sync_right");
 
-        //cout << frameRgb->getTimestamp().time_since_epoch().count()  << endl;
+        Frame f;
+        f.timestamp = chrono::duration<double>(frameLeft->getTimestamp().time_since_epoch()).count();
+        f.left = frameLeft->getCvFrame().clone();
+        f.right = frameRight->getCvFrame().clone();
+        f.depth = frameDepth->getCvFrame().clone();
+        f.rgb = frameRgb->getCvFrame().clone();
 
-        Mat cvFrame = frameRgb->getCvFrame();
-        imshow("frameRgb", cvFrame);
-        waitKey(1);
+        {
+            lock_guard<mutex> lock(frameMutex);
+            frameBuffer.push_back(f);
 
-        this_thread::sleep_for(chrono::milliseconds(1));
+            const int MAX_IMG_SIZE = 3;
+            while(frameBuffer.size() > MAX_IMG_SIZE) {
+                frameBuffer.pop_front();
+            }
+        }
+
+        condVar.notify_one(); 
     }
 
+}
+
+bool DepthAISensor::getSensorData(DepthAISensor::SensorData & outData) {
+    static double prvsTime = -1;
+    unique_lock<mutex> lock(frameMutex);
+    condVar.wait(lock, [this] { return !frameBuffer.empty() || !isRunning; });
+
+    if (!isRunning) {
+        return false;
+    }
+
+    outData.frame = frameBuffer.front();
+    frameBuffer.pop_front();
+    double currentTime = outData.frame.timestamp;
+    lock.unlock();
+    
+    if (prvsTime < 0) {
+        prvsTime = currentTime;
+        return false;
+    }
+
+    outData.imuSequence.clear();
+    {
+        lock_guard<mutex> imuLock(imuMutex);
+        auto it = imuBuffer.begin();
+        while (it != imuBuffer.end()) {
+            if (prvsTime <= it->timestamp && it->timestamp <= currentTime) {
+                outData.imuSequence.push_back(*it);
+            } 
+            it++;
+        }
+    }
+    prvsTime = currentTime;
+    return true;
 }
