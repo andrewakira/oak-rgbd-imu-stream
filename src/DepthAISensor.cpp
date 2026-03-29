@@ -1,5 +1,11 @@
 #include "DepthAISensor.hpp"
 
+#define DEBUGMODE 0
+#if DEBUGMODE
+#include "FPSCounter.hpp"
+FPSCounter fpsCounter;
+#endif
+
 using namespace std;
 using namespace cv;
 
@@ -137,6 +143,9 @@ void DepthAISensor::imuLoop() {
         if(imuData == nullptr)  {
             continue;
         }
+        #if DEBUGMODE
+        fpsCounter.update("imu");
+        #endif
 
         for(const auto& imuPacket : imuData->packets) {
             auto acceleroValues = imuPacket.acceleroMeter;
@@ -165,6 +174,9 @@ void DepthAISensor::cameraLoop() {
         if(messageGroup == nullptr) {
             continue;
         }
+        #if DEBUGMODE
+        fpsCounter.update("camera");
+        #endif
 
         auto frameRgb = messageGroup->get<dai::ImgFrame>("sync_rgb");
         auto frameDepth = messageGroup->get<dai::ImgFrame>("sync_depth");
