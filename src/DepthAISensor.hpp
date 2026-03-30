@@ -45,7 +45,9 @@ public:
     void start();
     bool getSensorData(SensorData& outData);
     void stop();
+
     void printCalibrationInfo(int width, int height);
+    cv::Mat visualizeDepth(const cv::Mat& depth16U, int minDisplayMM = 800, int maxDisplayMM = 20000);
 private:
     std::shared_ptr<dai::Device> device;
 
@@ -60,7 +62,9 @@ private:
     std::mutex frameMutex;
     std::condition_variable condVar;
 
-    
+    bool isBuildingUndistortedRGBMap = false;
+    cv::Mat mapX, mapY;
+
     void initDevice();
     dai::Pipeline createPipeline();
     void imuLoop();
