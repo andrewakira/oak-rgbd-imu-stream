@@ -45,6 +45,7 @@ public:
     void start();
     bool getSensorData(SensorData& outData);
     void stop();
+    void printCalibrationInfo(int width, int height);
 private:
     std::shared_ptr<dai::Device> device;
 

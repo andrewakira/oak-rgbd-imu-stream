@@ -47,6 +47,59 @@ void DepthAISensor::stop() {
     }
 }
 
+void DepthAISensor::printCalibrationInfo(int width, int height) {
+    cout << "---" << endl;
+    auto socketToString = [](dai::CameraBoardSocket s) {
+        switch(s) {
+            case dai::CameraBoardSocket::CAM_A: return "CAM_A (center)";
+            case dai::CameraBoardSocket::CAM_B: return "CAM_B (left  )" ;
+            case dai::CameraBoardSocket::CAM_C: return "CAM_C (right )";
+            default: return "UNKNOWN";
+        }
+    };
+    unordered_map<dai::CameraBoardSocket, string> sensors = device->getCameraSensorNames();
+    for(const auto& [socket, name] : sensors) {
+        cout << "[OAK] Camera socket: " << socketToString(socket)
+            << ", sensor: " << name << endl;
+    }
+
+    auto calibHandler = device->readCalibration();
+    auto boardName = calibHandler.getEepromData().boardName;
+
+    cout << "width x height : " << width << " x " << height << endl; 
+    cout << "[Intrinsic]" << endl;
+    for(const auto& [socket, name] : sensors) {
+        cout << socketToString(socket) << endl;
+        vector<vector<float>> intrinsic = calibHandler.getCameraIntrinsics(socket, width, height);
+        for (const auto& row : intrinsic) {
+            for (const auto& val : row) {
+                cout << val << " ";
+            }
+            cout << endl;
+        }    
+    }
+
+    cout << "[Distortion]" << endl;
+    for(const auto& [socket, name] : sensors) {
+        cout << socketToString(socket) << endl;
+        vector<float> distortion = calibHandler.getDistortionCoefficients(socket);
+        for (const auto& val : distortion) {
+            cout << val << " ";
+        }
+        cout << endl;    
+    }
+
+    vector<vector<float>> extrinsics = calibHandler.getCameraExtrinsics(dai::CameraBoardSocket::CAM_B, dai::CameraBoardSocket::CAM_C);
+    cout << "[Extrinsics CAM_B -> CAM_C]\n";
+    for (const auto& row : extrinsics) {
+        for (const auto& val : row) {
+            cout << val << " ";
+        }
+        cout << endl;
+    }
+    cout << "---" << endl;
+}
+
 void DepthAISensor::initDevice() {
     cout << "---" << endl;
     vector<dai::DeviceInfo> availableDevices = dai::Device::getAllAvailableDevices();
@@ -65,16 +118,7 @@ void DepthAISensor::initDevice() {
     vector<string> usbStrings = {"UNKNOWN", "LOW", "FULL", "HIGH", "SUPER", "SUPER_PLUS"};
     cout << "[OAK] Device USB status : " << usbStrings[static_cast<int32_t>(device->getUsbSpeed())] << endl;
     cout << "[OAK] Product name : " << device->getProductName() << endl;
-    
-    unordered_map<dai::CameraBoardSocket, string> sensors = device->getCameraSensorNames();
-    for(const auto& [socket, name] : sensors) {
-        cout << "[OAK] Camera socket: " << static_cast<int>(socket)
-            << ", sensor: " << name << endl;
-    }
     cout << "---" << endl;
-
-auto calibrationHandler = device->readCalibration();
-auto boardName = calibrationHandler.getEepromData().boardName;
 }
 
 dai::Pipeline DepthAISensor::createPipeline() {

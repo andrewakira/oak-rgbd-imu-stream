@@ -15,7 +15,10 @@ int main(int argc, char** argv) {
         if (key == 'q') {
             depthAISensor.stop();
             break;  
+        } else if ( key == 's') {
+            depthAISensor.printCalibrationInfo(640, 480);
         }
+
         if(!depthAISensor.getSensorData(data)) {
             continue;
         }
