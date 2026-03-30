@@ -1,5 +1,5 @@
 ## Introduction
-This project provides a C++ pipeline for streaming synchronized data from Luxonis OAK devices, including:
+This project provides a C++ pipeline for streaming synchronized data from Luxonis OAK devices (OAK-D Lite), including:
 
 - undistorted RGB image
 
