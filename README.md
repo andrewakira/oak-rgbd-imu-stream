@@ -1,4 +1,20 @@
 ## Introduction
+This project provides a C++ pipeline for streaming synchronized data from Luxonis OAK devices, including:
+
+- undistorted RGB image
+
+    Resolution: 320×180, 30 FPS (synchronized)
+- Stereo images (rectified left/right)
+
+    Resolution: 640×480, 30 FPS (synchronized)
+- Depth map (CV_16UC1, millimeters)
+
+    Resolution: 640×480, 30 FPS (synchronized)
+- IMU data
+
+    6-DoF (accelerometer + gyroscope), 200 Hz
+
+It ensures time-synchronized sensor output suitable for multi-sensor fusion pipelines.
 
 
 ## Docker setup
