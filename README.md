@@ -16,7 +16,6 @@ This project provides a C++ pipeline for streaming synchronized data from Luxoni
 
 It ensures time-synchronized sensor output suitable for multi-sensor fusion pipelines.
 
-
 ## Docker setup
 1. Building image
     ```shell=
@@ -44,3 +43,6 @@ It ensures time-synchronized sensor output suitable for multi-sensor fusion pipe
     ```shell=
     ./build/oak_stream
     ```
+
+## OAK-D Lite Pipline
+<img src="./data/pipline.png" width="600"/>
