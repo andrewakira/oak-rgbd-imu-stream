@@ -47,6 +47,83 @@ void DepthAISensor::stop() {
     }
 }
 
+void DepthAISensor::printCalibrationInfo(int width, int height) {
+    cout << "---" << endl;
+    auto socketToString = [](dai::CameraBoardSocket s) {
+        switch(s) {
+            case dai::CameraBoardSocket::CAM_A: return "CAM_A (center)";
+            case dai::CameraBoardSocket::CAM_B: return "CAM_B (left  )" ;
+            case dai::CameraBoardSocket::CAM_C: return "CAM_C (right )";
+            default: return "UNKNOWN";
+        }
+    };
+    unordered_map<dai::CameraBoardSocket, string> sensors = device->getCameraSensorNames();
+    for(const auto& [socket, name] : sensors) {
+        cout << "[OAK] Camera socket: " << socketToString(socket)
+            << ", sensor: " << name << endl;
+    }
+
+    auto calibHandler = device->readCalibration();
+    auto boardName = calibHandler.getEepromData().boardName;
+
+    cout << "width x height : " << width << " x " << height << endl; 
+    cout << "[Intrinsic]" << endl;
+    for(const auto& [socket, name] : sensors) {
+        cout << socketToString(socket) << endl;
+        vector<vector<float>> intrinsic = calibHandler.getCameraIntrinsics(socket, width, height);
+        for (const auto& row : intrinsic) {
+            for (const auto& val : row) {
+                cout << val << " ";
+            }
+            cout << endl;
+        }    
+    }
+
+    cout << "[Distortion]" << endl;
+    for(const auto& [socket, name] : sensors) {
+        cout << socketToString(socket) << endl;
+        vector<float> distortion = calibHandler.getDistortionCoefficients(socket);
+        for (const auto& val : distortion) {
+            cout << val << " ";
+        }
+        cout << endl;    
+    }
+
+    vector<vector<float>> extrinsics = calibHandler.getCameraExtrinsics(dai::CameraBoardSocket::CAM_B, dai::CameraBoardSocket::CAM_C);
+    cout << "[Extrinsics CAM_B -> CAM_C]\n";
+    for (const auto& row : extrinsics) {
+        for (const auto& val : row) {
+            cout << val << " ";
+        }
+        cout << endl;
+    }
+    cout << "---" << endl;
+}
+
+Mat DepthAISensor::visualizeDepth(const Mat& depth16U, int minDisplayMM, int maxDisplayMM) {
+    CV_Assert(depth16U.type() == CV_16UC1);
+
+    Mat validMask = (depth16U >= minDisplayMM) & (depth16U <= maxDisplayMM);
+
+    Mat clipped;
+    min(depth16U, maxDisplayMM, clipped);
+    max(clipped, minDisplayMM, clipped);
+
+    Mat normalized;
+    clipped.convertTo(normalized, CV_32F);
+
+    normalized = (normalized - minDisplayMM) / (maxDisplayMM - minDisplayMM);
+    normalized = normalized * 255.0;
+
+    normalized.convertTo(normalized, CV_8U);
+
+    Mat depthColored;
+    applyColorMap(normalized, depthColored, cv::COLORMAP_JET);
+    depthColored.setTo(cv::Scalar(0,0,0), ~validMask);
+
+    return depthColored;
+}
+
 void DepthAISensor::initDevice() {
     cout << "---" << endl;
     vector<dai::DeviceInfo> availableDevices = dai::Device::getAllAvailableDevices();
@@ -65,16 +142,7 @@ void DepthAISensor::initDevice() {
     vector<string> usbStrings = {"UNKNOWN", "LOW", "FULL", "HIGH", "SUPER", "SUPER_PLUS"};
     cout << "[OAK] Device USB status : " << usbStrings[static_cast<int32_t>(device->getUsbSpeed())] << endl;
     cout << "[OAK] Product name : " << device->getProductName() << endl;
-    
-    unordered_map<dai::CameraBoardSocket, string> sensors = device->getCameraSensorNames();
-    for(const auto& [socket, name] : sensors) {
-        cout << "[OAK] Camera socket: " << static_cast<int>(socket)
-            << ", sensor: " << name << endl;
-    }
     cout << "---" << endl;
-
-auto calibrationHandler = device->readCalibration();
-auto boardName = calibrationHandler.getEepromData().boardName;
 }
 
 dai::Pipeline DepthAISensor::createPipeline() {
@@ -202,12 +270,36 @@ void DepthAISensor::cameraLoop() {
         auto frameLeft = messageGroup->get<dai::ImgFrame>("sync_left");
         auto frameRight = messageGroup->get<dai::ImgFrame>("sync_right");
 
+        Mat distortRGB = frameRgb->getCvFrame();
+        if (!isBuildingUndistortedRGBMap) {
+            auto calibHandler = device->readCalibration();
+            auto rgbIntrinsics = calibHandler.getCameraIntrinsics(dai::CameraBoardSocket::CAM_A, distortRGB.cols, distortRGB.rows);
+            auto rgbDistortion = calibHandler.getDistortionCoefficients(dai::CameraBoardSocket::CAM_A);
+
+            Mat K(3, 3, CV_32F);
+            for (int i = 0; i < 3; i++) {
+                for (int j = 0; j < 3; j++) {
+                    K.at<float>(i, j) = rgbIntrinsics[i][j];
+                }
+            }
+                    
+            Mat D(rgbDistortion.size(), 1, CV_32F);
+            for (int i = 0; i < rgbDistortion.size(); i++) {
+                D.at<float>(i, 0) = rgbDistortion[i];
+            }
+            initUndistortRectifyMap(K, D, Mat(), K, Size(distortRGB.cols, distortRGB.rows), CV_32FC1, mapX, mapY); //using CV_16S2 is not good here. 
+            isBuildingUndistortedRGBMap = true;
+        }
+        Mat undistortRGB;
+        remap(distortRGB, undistortRGB, mapX, mapY, INTER_NEAREST);
+
+
         Frame f;
         f.timestamp = chrono::duration<double>(frameLeft->getTimestamp().time_since_epoch()).count();
         f.left = frameLeft->getCvFrame().clone();
         f.right = frameRight->getCvFrame().clone();
         f.depth = frameDepth->getCvFrame().clone();
-        f.rgb = frameRgb->getCvFrame().clone();
+        f.rgb = undistortRGB.clone();
 
         {
             lock_guard<mutex> lock(frameMutex);
