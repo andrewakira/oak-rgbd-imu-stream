@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="oak_ros" type="oak_receiver_node" name="oak_receiver" output="screen"/>
+</launch>
