@@ -39,12 +39,18 @@ public:
         Frame frame;
     };
 
+    using ImuCallback = std::function<void(const ImuData&)>;
+    using FrameCallback = std::function<void(const Frame&)>;
+
     DepthAISensor();
     ~DepthAISensor();
 
     void start();
-    bool getSensorData(SensorData& outData);
     void stop();
+
+    bool getSensorData(SensorData& outData);
+    void setImuCallback(ImuCallback cb) { imuCallback = cb; }
+    void setFrameCallback(FrameCallback cb) { frameCallback = cb; }
 
     void printCalibrationInfo(int width, int height);
     cv::Mat visualizeDepth(const cv::Mat& depth16U, int minDisplayMM = 800, int maxDisplayMM = 20000);
@@ -61,6 +67,9 @@ private:
     std::mutex imuMutex;
     std::mutex frameMutex;
     std::condition_variable condVar;
+
+    ImuCallback imuCallback; 
+    FrameCallback frameCallback;
 
     bool isBuildingUndistortedRGBMap = false;
     cv::Mat mapX, mapY;

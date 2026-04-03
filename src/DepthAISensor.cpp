@@ -242,6 +242,10 @@ void DepthAISensor::imuLoop() {
                 }
             }
 
+            if(imuCallback) {
+                imuCallback(imu);
+            }
+
             // Print accelerometer data
             //cout << "Accelerometer timestamp: " << acceleroTs.time_since_epoch().count() << endl;
             //cout << "Latency [ms]: " << timeDeltaToMilliS(chrono::steady_clock::now() - acceleroValues.getTimestamp()) << endl;
@@ -312,6 +316,10 @@ void DepthAISensor::cameraLoop() {
         }
 
         condVar.notify_one(); 
+
+        if(frameCallback) {
+            frameCallback(f);
+        }
     }
 
 }
