@@ -1,5 +1,5 @@
 ## Introduction
-This project provides a C++ pipeline for streaming synchronized data from Luxonis OAK devices (OAK-D Lite), including:
+This project provides a C++ pipeline (non-ROS1 & ROS1) for streaming synchronized data from Luxonis OAK devices (OAK-D Lite), including:
 
 - undistorted RGB image
 
@@ -16,7 +16,8 @@ This project provides a C++ pipeline for streaming synchronized data from Luxoni
 
 It ensures time-synchronized sensor output suitable for multi-sensor fusion pipelines.
 
-## Docker setup
+## non-ROS1 docker setup
+ROS1 docker setup see [ros1/README.md](./ros1/README.md).
 1. Building image
     ```shell=
     sudo docker build --network=host -t oak -f dockerFile .
@@ -35,14 +36,13 @@ It ensures time-synchronized sensor output suitable for multi-sensor fusion pipe
       -v /dev:/dev \
       oak
     ```
-3. compile
+3. Compile
     ```shell=
     ./build.sh
     ```
-4. run inference
+4. Run
     ```shell=
     ./build/oak_stream
     ```
-
 ## OAK-D Lite Pipline
-<img src="./data/pipline.png" width="600"/>
+<img src="./data/pipline.png" width="500"/>

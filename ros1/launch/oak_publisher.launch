@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="oak_ros" type="oak_publisher_node" name="oak_publisher" output="screen"/>
+</launch>
