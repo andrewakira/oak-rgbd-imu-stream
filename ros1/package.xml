@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>oak_ros</name>
+  <version>0.0.1</version>
+  <description>OAK-D ROS publisher</description>
+
+  <maintainer email="fmase60911@gmail.com">andrewakira</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>roscpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>cv_bridge</depend>
+
+</package>
