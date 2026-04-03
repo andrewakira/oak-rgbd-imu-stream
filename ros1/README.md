@@ -14,15 +14,15 @@ The following table describes the published ROS1 topics and their corresponding 
     cd oak_ros1/src
     git clone https://github.com/andrewakira/oak-rgbd-imu-stream.git
     ```
-1. Building image
+2. Building image
     ```shell=
     cd oak-rgbd-imu-stream
     sudo docker build --network=host -t oak_ros1 -f dockerFile_ros1 .
     ```
-2. Run Container
+3. Run Container
     ```shell=
     #run in oak_ros1 directory
-    cd ../  
+    cd ../../  
     docker run -it --rm \
       --privileged \
       --net=host \
@@ -35,14 +35,14 @@ The following table describes the published ROS1 topics and their corresponding 
       -v /dev:/dev \
       oak_ros1
     ```
-3. Compile
+4. Compile
     ```shell=
     cd /workspace
     source /opt/ros/noetic/setup.bash
     catkin build
-    source devel/setup.bash
     ```
-4. Run
+5. Run
     ```shell=
+    source devel/setup.bash
     roslaunch oak_ros oak_publisher.launch
     ```

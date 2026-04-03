@@ -60,30 +60,25 @@ private:
         std_msgs::Header header;
         header.stamp = ros::Time(f.timestamp);
 
-        if (!f.left.empty()) {
-            header.frame_id = "left";
-            auto msg = cv_bridge::CvImage(header, "mono8", f.left).toImageMsg();
-            leftPub.publish(msg);
+        if (f.left.empty() || f.right.empty() || f.rgb.empty() || f.depth.empty()) {
+            return;
         }
 
-        if (!f.right.empty()) {
-            header.frame_id = "right";
-            auto msg = cv_bridge::CvImage(header, "mono8", f.right).toImageMsg();
-            rightPub.publish(msg);
-        }
-
-        if (!f.rgb.empty()) {
-            header.frame_id = "rgb";
-            auto msg = cv_bridge::CvImage(header, "bgr8", f.rgb).toImageMsg();
-            rgbPub.publish(msg);
-        }
-
-        if (!f.depth.empty()) {
-            header.frame_id = "depth";
-
-            auto msg = cv_bridge::CvImage(header, "16UC1", f.depth).toImageMsg();
-            depthPub.publish(msg);
-        }
+        header.frame_id = "left";
+        auto msgLeft = cv_bridge::CvImage(header, "mono8", f.left).toImageMsg();
+        leftPub.publish(msgLeft);
+    
+        header.frame_id = "right";
+        auto msgRight = cv_bridge::CvImage(header, "mono8", f.right).toImageMsg();
+        rightPub.publish(msgRight);
+    
+        header.frame_id = "rgb";
+        auto msgRgb = cv_bridge::CvImage(header, "bgr8", f.rgb).toImageMsg();
+        rgbPub.publish(msgRgb);
+    
+        header.frame_id = "depth";
+        auto msgDepth = cv_bridge::CvImage(header, "16UC1", f.depth).toImageMsg();
+        depthPub.publish(msgDepth);
     }
 };
 
