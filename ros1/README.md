@@ -41,8 +41,13 @@ The following table describes the published ROS1 topics and their corresponding 
     source /opt/ros/noetic/setup.bash
     catkin build
     ```
-5. Run
+5. Run 
     ```shell=
     source devel/setup.bash
     roslaunch oak_ros oak_publisher.launch
+    ```
+6. (optional) run receiver or use ```rqt_image_view``` to show images 
+    ```shell=
+    source devel/setup.bash
+    roslaunch oak_ros oak_receiver.launch
     ```

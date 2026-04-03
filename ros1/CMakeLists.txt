@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
     roscpp
     sensor_msgs
     cv_bridge
+    message_filters   
 )
 find_package(OpenCV REQUIRED)
 find_package(depthai CONFIG REQUIRED)
@@ -33,11 +34,20 @@ target_link_libraries(depthai_sensor
     depthai::opencv
 )
 
+# ===== publisher =====
 add_executable(oak_publisher_node
     src/publisher.cpp
 )
-
 target_link_libraries(oak_publisher_node
     depthai_sensor
     ${catkin_LIBRARIES}
+)
+
+# ===== receiver =====
+add_executable(oak_receiver_node
+  src/receiver.cpp
+)
+target_link_libraries(oak_receiver_node
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBS}
 )
