@@ -17,6 +17,7 @@
 #include "depthai/pipeline/node/XLinkIn.hpp"
 #include "depthai/pipeline/node/XLinkOut.hpp"
 #include "depthai/pipeline/node/Sync.hpp"
+#include "depthai/utility/Clock.hpp"
 
 class DepthAISensor {
 public:
@@ -48,6 +49,7 @@ public:
     void start();
     void stop();
 
+    double getDeviceTimestampSec();
     bool getSensorData(SensorData& outData);
     void setImuCallback(ImuCallback cb) { imuCallback = cb; }
     void setFrameCallback(FrameCallback cb) { frameCallback = cb; }
