@@ -324,6 +324,18 @@ void DepthAISensor::cameraLoop() {
 
 }
 
+double DepthAISensor::getDeviceTimestampSec() {
+    double deviceTimeSec = chrono::duration<double>(dai::Clock::now().time_since_epoch()).count();
+
+    #if DEBUGMODE
+    double hostTimeSec = chrono::duration<double>(chrono::steady_clock::now().time_since_epoch()).count();
+    double offSet = deviceTimeSec - hostTimeSec;
+    cout << offSet << endl; //it will print 0.
+    #endif
+
+    return deviceTimeSec;
+}
+
 bool DepthAISensor::getSensorData(DepthAISensor::SensorData & outData) {
     static double prvsTime = -1;
     unique_lock<mutex> lock(frameMutex);

@@ -12,7 +12,7 @@ This project provides a C++ pipeline (non-ROS1 & ROS1) for streaming synchronize
     Resolution: 640×480, 30 FPS (synchronized)
 - IMU data
 
-    6-DoF (accelerometer + gyroscope), 200 Hz
+    6-DoF (accelerometer + gyroscope), 200 Hz, including acceleration [m/s^2] and angular velocity [rad/s].
 
 It ensures time-synchronized sensor output suitable for multi-sensor fusion pipelines.
 
