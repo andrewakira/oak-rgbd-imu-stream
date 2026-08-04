@@ -299,7 +299,7 @@ void DepthAISensor::cameraLoop() {
 
 
         Frame f;
-        f.timestamp = chrono::duration<double>(frameLeft->getTimestamp().time_since_epoch()).count();
+        f.timestamp = chrono::duration<double>(frameLeft->getTimestamp(dai::CameraExposureOffset::MIDDLE).time_since_epoch()).count();
         f.left = frameLeft->getCvFrame().clone();
         f.right = frameRight->getCvFrame().clone();
         f.depth = frameDepth->getCvFrame().clone();
